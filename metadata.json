@@ -1,0 +1,8 @@
+{
+  "name": "Remix 档案智能管理平台",
+  "description": "基于Axure 2256186规范打造的高保真数字档案全生命周期管理平台（含归档接收、四性检测、档案检索目录、借阅利用、鉴定销毁及三员审计功能）。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
