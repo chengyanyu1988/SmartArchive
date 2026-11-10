@@ -640,6 +640,8 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
     | null
   >(null);
 
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
   // Modal Form Inputs matching image_df9360f4.png & image_09cc0a30.png
   const [formFondsNo, setFormFondsNo] = useState('');
   const [formYear, setFormYear] = useState('');
@@ -861,20 +863,101 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
   };
 
   // Open Edit Modal
-  const handleOpenEdit = () => {
-    const target =
-      activeTab === 'files'
-        ? fileList.find((f) => selectedFileIds.includes(f.id)) || fileList[0]
-        : volumeList.find((v) => selectedVolumeIds.includes(v.id)) || volumeList[0];
+  const handleOpenEdit = (specificItem?: any) => {
+    let target = specificItem;
+    if (!target) {
+      if (activeTab === 'files') {
+        if (selectedFileIds.length === 0) {
+          onShowMessage('请先在列表中勾选要编辑的文件');
+          return;
+        }
+        target = fileList.find((f) => selectedFileIds.includes(f.id));
+      } else {
+        if (selectedVolumeIds.length === 0) {
+          onShowMessage('请先在列表中勾选要编辑的案卷');
+          return;
+        }
+        target = volumeList.find((v) => selectedVolumeIds.includes(v.id));
+      }
+    }
 
     if (target) {
-      setFormTitle(target.title);
-      setFormDocNo('docNo' in target ? target.docNo : target.volumeNo);
-      setFormAuthor(target.author);
-      setFormSecurity(target.securityLevel);
-      setFormRetention(target.retention);
+      setEditingItemId(target.id);
+      setFormFondsNo(target.fondsNo || '0110');
+      setFormYear(target.year ? target.year.toString() : '2026');
+      setFormCategory(target.category || target.className || '行政管理');
+      setFormRefCode(target.refCode || target.archiveNo || '');
+      setFormTitle(target.title || '');
+      setFormDocNo('docNo' in target ? (target.docNo || '') : (target.volumeNo || ''));
+      setFormAuthor(target.author || '');
+      setFormWrittenDate(target.writtenDate || '2026-11-05');
+      setFormRetention(target.retention || '30年');
+      setFormSecurity(target.securityLevel || '公开');
+      setFormPageCount(target.totalPages ? target.totalPages.toString() : (target.pageCount ? target.pageCount.toString() : '1'));
+      setFormFileCount(target.fileCount ? target.fileCount.toString() : '1');
+      setFormUnit(target.unit || '档案管理中心');
+      setFormArchivedDate(target.archivedDate || '2026-11-05');
+      setFormRemark(target.remark || '');
       setModalType('edit');
+    } else {
+      onShowMessage('未找到要编辑的档案记录');
     }
+  };
+
+  const handleSaveEdit = () => {
+    if (!formTitle.trim()) {
+      onShowMessage('请输入题名');
+      return;
+    }
+    if (activeTab === 'files') {
+      setFileList((prev) =>
+        prev.map((f) => {
+          if (f.id === editingItemId) {
+            return {
+              ...f,
+              title: formTitle.trim(),
+              docNo: formDocNo.trim() || f.docNo,
+              author: formAuthor.trim() || f.author,
+              securityLevel: (formSecurity as any) || f.securityLevel,
+              retention: (formRetention as any) || f.retention,
+              fondsNo: formFondsNo || f.fondsNo,
+              year: Number(formYear) || f.year,
+              writtenDate: formWrittenDate || f.writtenDate,
+              unit: formUnit || f.unit,
+              refCode: formRefCode || f.refCode,
+            };
+          }
+          return f;
+        })
+      );
+      onShowMessage(`已成功保存编辑的文件 [${formTitle.trim()}]`);
+    } else {
+      setVolumeList((prev) =>
+        prev.map((v) => {
+          if (v.id === editingItemId) {
+            return {
+              ...v,
+              title: formTitle.trim(),
+              volumeNo: formDocNo.trim() || v.volumeNo,
+              author: formAuthor.trim() || v.author,
+              securityLevel: (formSecurity as any) || v.securityLevel,
+              retention: (formRetention as any) || v.retention,
+              fondsNo: formFondsNo || v.fondsNo,
+              year: Number(formYear) || v.year,
+              writtenDate: formWrittenDate || v.writtenDate,
+              unit: formUnit || v.unit,
+              refCode: formRefCode || v.refCode,
+              pageCount: Number(formPageCount) || v.pageCount,
+              fileCount: Number(formFileCount) || v.fileCount,
+            };
+          }
+          return v;
+        })
+      );
+      onShowMessage(`已成功保存编辑的案卷 [${formTitle.trim()}]`);
+    }
+    setModalType(null);
+    setEditingItemId(null);
   };
 
   // Tree selection handlers
@@ -1204,7 +1287,13 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
               </button>
               <button
                 onClick={handleOpenEdit}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs transition-colors flex items-center gap-1"
+                disabled={selectedFileIds.length === 0}
+                title={selectedFileIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的文件数据"}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
+                  selectedFileIds.length === 0
+                    ? 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-100/50 dark:bg-slate-800/30 cursor-not-allowed opacity-60'
+                    : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs font-semibold'
+                }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>编辑</span>
@@ -1278,7 +1367,13 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
               </button>
               <button
                 onClick={handleOpenEdit}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs transition-colors flex items-center gap-1"
+                disabled={selectedVolumeIds.length === 0}
+                title={selectedVolumeIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的案卷数据"}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
+                  selectedVolumeIds.length === 0
+                    ? 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-100/50 dark:bg-slate-800/30 cursor-not-allowed opacity-60'
+                    : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs font-semibold'
+                }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>编辑</span>
@@ -1449,10 +1544,16 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                           {item.unit}
                         </td>
                         <td className="py-3 px-3 text-slate-500 whitespace-nowrap">{item.archivedDate}</td>
-                        <td className="py-3 px-3 text-right font-sans whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900">
+                        <td className="py-3 px-3 text-right font-sans whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(item)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
+                          >
+                            编辑
+                          </button>
                           <button
                             onClick={() => onSelectRecord(item)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
+                            className="text-slate-600 hover:text-slate-800 dark:text-slate-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
                           >
                             查看详情
                           </button>
@@ -1593,10 +1694,16 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                           {item.unit}
                         </td>
                         <td className="py-3 px-3 text-slate-500 whitespace-nowrap">{item.archivedDate}</td>
-                        <td className="py-3 px-3 text-right font-sans whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900">
+                        <td className="py-3 px-3 text-right font-sans whitespace-nowrap sticky right-0 bg-white dark:bg-slate-900 flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(item)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
+                          >
+                            编辑
+                          </button>
                           <button
                             onClick={() => onSelectRecord(item)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
+                            className="text-slate-600 hover:text-slate-800 dark:text-slate-400 font-bold text-[11px] underline whitespace-nowrap inline-block shrink-0"
                           >
                             查看详情
                           </button>
@@ -2027,6 +2134,238 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                 className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
               >
                 保存文件
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑文件/案卷 弹窗 */}
+      {modalType === 'edit' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-6 my-8 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-blue-600" />
+                <span>{activeTab === 'files' ? '编辑文件元数据与条目' : '编辑案卷元数据与条目'}</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setModalType(null);
+                  setEditingItemId(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    全宗号:
+                  </label>
+                  <input
+                    type="text"
+                    value={formFondsNo}
+                    onChange={(e) => setFormFondsNo(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    年度:
+                  </label>
+                  <select
+                    value={formYear}
+                    onChange={(e) => setFormYear(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono cursor-pointer"
+                  >
+                    <option value="2026">2026年</option>
+                    <option value="2025">2025年</option>
+                    <option value="2024">2024年</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    分类:
+                  </label>
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans cursor-pointer"
+                  >
+                    <option value="行政管理">行政管理</option>
+                    <option value="党群工作">党群工作</option>
+                    <option value="生产技术管理">生产技术管理</option>
+                    <option value="经营管理">经营管理</option>
+                    <option value="财务审计">财务审计</option>
+                    <option value="人力资源管理">人力资源管理</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    档号 / 拟定档号:
+                  </label>
+                  <input
+                    type="text"
+                    value={formRefCode}
+                    onChange={(e) => setFormRefCode(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-blue-600 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    {activeTab === 'files' ? '文号:' : '案卷号:'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formDocNo}
+                    onChange={(e) => setFormDocNo(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                  <span className="text-rose-500 mr-1">*</span>{activeTab === 'files' ? '文件题名:' : '案卷题名:'}
+                </label>
+                <input
+                  type="text"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="请输入题名..."
+                  className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans font-semibold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    责任者 / 编制单位:
+                  </label>
+                  <input
+                    type="text"
+                    value={formAuthor}
+                    onChange={(e) => setFormAuthor(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    成文日期 / 起止日期:
+                  </label>
+                  <input
+                    type="text"
+                    value={formWrittenDate}
+                    onChange={(e) => setFormWrittenDate(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    归档单位:
+                  </label>
+                  <input
+                    type="text"
+                    value={formUnit}
+                    onChange={(e) => setFormUnit(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    密级:
+                  </label>
+                  <select
+                    value={formSecurity}
+                    onChange={(e) => setFormSecurity(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans cursor-pointer"
+                  >
+                    <option value="公开">公开</option>
+                    <option value="内部">内部</option>
+                    <option value="秘密">秘密</option>
+                    <option value="机密">机密</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                    保管期限:
+                  </label>
+                  <select
+                    value={formRetention}
+                    onChange={(e) => setFormRetention(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans cursor-pointer"
+                  >
+                    <option value="10年">10年</option>
+                    <option value="30年">30年</option>
+                    <option value="永久">永久</option>
+                  </select>
+                </div>
+              </div>
+
+              {activeTab === 'volumes' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                      总页数:
+                    </label>
+                    <input
+                      type="number"
+                      value={formPageCount}
+                      onChange={(e) => setFormPageCount(e.target.value)}
+                      className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
+                      文件件数:
+                    </label>
+                    <input
+                      type="number"
+                      value={formFileCount}
+                      onChange={(e) => setFormFileCount(e.target.value)}
+                      className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalType(null);
+                  setEditingItemId(null);
+                }}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                保存修改
               </button>
             </div>
           </div>

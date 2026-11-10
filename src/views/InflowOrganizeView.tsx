@@ -1063,7 +1063,13 @@ export const InflowOrganizeView: React.FC<InflowOrganizeViewProps> = ({
 
               <button
                 onClick={handleOpenEdit}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs transition-colors flex items-center gap-1"
+                disabled={selectedFileIds.length === 0}
+                title={selectedFileIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的文件数据"}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
+                  selectedFileIds.length === 0
+                    ? 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-100/50 dark:bg-slate-800/30 cursor-not-allowed opacity-60'
+                    : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs font-semibold'
+                }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>编辑</span>
@@ -1148,7 +1154,13 @@ export const InflowOrganizeView: React.FC<InflowOrganizeViewProps> = ({
 
               <button
                 onClick={handleOpenEdit}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs transition-colors flex items-center gap-1"
+                disabled={selectedVolumeIds.length === 0}
+                title={selectedVolumeIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的案卷数据"}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
+                  selectedVolumeIds.length === 0
+                    ? 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-100/50 dark:bg-slate-800/30 cursor-not-allowed opacity-60'
+                    : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs font-semibold'
+                }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>编辑</span>
