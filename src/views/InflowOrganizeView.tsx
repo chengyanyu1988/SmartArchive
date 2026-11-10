@@ -604,18 +604,33 @@ export const InflowOrganizeView: React.FC<InflowOrganizeViewProps> = ({
   };
 
   // Open Edit Modal
-  const handleOpenEdit = () => {
-    const target =
-      activeTab === 'files'
-        ? fileList.find((f) => selectedFileIds.includes(f.id)) || fileList[0]
-        : volumeList.find((v) => selectedVolumeIds.includes(v.id)) || volumeList[0];
+  const handleOpenEdit = (specificItem?: any) => {
+    let target = (specificItem && typeof specificItem === 'object' && 'id' in specificItem && !('nativeEvent' in specificItem) && !('target' in specificItem))
+      ? specificItem
+      : undefined;
+
+    if (!target) {
+      if (activeTab === 'files') {
+        const lastId = selectedFileIds[selectedFileIds.length - 1];
+        target = fileList.find((f) => f.id === lastId) || fileList.find((f) => selectedFileIds.includes(f.id));
+      } else {
+        const lastId = selectedVolumeIds[selectedVolumeIds.length - 1];
+        target = volumeList.find((v) => v.id === lastId) || volumeList.find((v) => selectedVolumeIds.includes(v.id));
+      }
+    }
 
     if (target) {
-      setFormTitle(target.title);
-      setFormDocNo('docNo' in target ? target.docNo : target.volumeNo);
-      setFormAuthor(target.author);
-      setFormSecurity(target.securityLevel);
-      setFormRetention(target.retention);
+      setFormTitle(target.title || '');
+      setFormDocNo('docNo' in target ? (target.docNo || '') : (target.volumeNo || ''));
+      setFormAuthor(target.author || target.orgUnit || '');
+      setFormSecurity(target.securityLevel || '公开');
+      setFormRetention(target.retention || '30年');
+      setFormFondsNo(target.fondsNo || '0110');
+      setFormYear(target.year ? String(target.year) : '2026');
+      setFormCategory(target.className || target.category || '行政管理');
+      setFormRefCode(target.refCode || '');
+      setFormWrittenDate(target.writtenDate || '2026-11-05');
+      setFormUnit(target.unit || '档案馆');
       setModalType('edit_file');
     }
   };
@@ -1062,7 +1077,7 @@ export const InflowOrganizeView: React.FC<InflowOrganizeViewProps> = ({
               </button>
 
               <button
-                onClick={handleOpenEdit}
+                onClick={() => handleOpenEdit()}
                 disabled={selectedFileIds.length === 0}
                 title={selectedFileIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的文件数据"}
                 className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
@@ -1153,7 +1168,7 @@ export const InflowOrganizeView: React.FC<InflowOrganizeViewProps> = ({
               </button>
 
               <button
-                onClick={handleOpenEdit}
+                onClick={() => handleOpenEdit()}
                 disabled={selectedVolumeIds.length === 0}
                 title={selectedVolumeIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的案卷数据"}
                 className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${

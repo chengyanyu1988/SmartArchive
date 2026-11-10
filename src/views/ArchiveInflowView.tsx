@@ -864,7 +864,11 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
 
   // Open Edit Modal with selected record or explicitly passed item
   const handleOpenEdit = (specificItem?: any) => {
-    let target = specificItem;
+    // Safely check if specificItem is a data record object rather than a React SyntheticEvent
+    let target = (specificItem && typeof specificItem === 'object' && 'id' in specificItem && !('nativeEvent' in specificItem) && !('target' in specificItem))
+      ? specificItem
+      : undefined;
+
     if (!target) {
       if (activeTab === 'files') {
         if (selectedFileIds.length === 0) {
@@ -1288,7 +1292,7 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                 <span>复制</span>
               </button>
               <button
-                onClick={handleOpenEdit}
+                onClick={() => handleOpenEdit()}
                 disabled={selectedFileIds.length === 0}
                 title={selectedFileIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的文件数据"}
                 className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
@@ -1368,7 +1372,7 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                 <span>提交案卷</span>
               </button>
               <button
-                onClick={handleOpenEdit}
+                onClick={() => handleOpenEdit()}
                 disabled={selectedVolumeIds.length === 0}
                 title={selectedVolumeIds.length === 0 ? "请先在列表中勾选要编辑的数据" : "编辑选中的案卷数据"}
                 className={`px-2.5 py-1.5 rounded-lg border text-xs transition-all flex items-center gap-1 ${
