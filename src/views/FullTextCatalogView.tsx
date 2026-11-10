@@ -379,6 +379,88 @@ export const FullTextCatalogView: React.FC<FullTextCatalogViewProps> = ({
     onShowMessage(`成功将 ${selectedIds.length} 份文档加入我的收藏`);
   };
 
+  // Real browser file export (CSV / Excel UTF-8 with BOM)
+  const handleRealExport = (format: 'csv' | 'json' = 'csv') => {
+    const exportRecords =
+      selectedIds.length > 0
+        ? sortedData.filter((r) => selectedIds.includes(r.id))
+        : sortedData;
+
+    if (exportRecords.length === 0) {
+      onShowMessage('当前没有可导出的全文检索记录');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    if (format === 'csv') {
+      const fileName = `数字档案全文检索结果_${timestamp}.csv`;
+      const headers = [
+        '档号',
+        '全宗名称',
+        '文件题名',
+        '档案门类',
+        '责任者',
+        '年度',
+        '成文日期',
+        '归档日期',
+        '保管期限',
+        '密级',
+        '命中页码',
+        '命中频次',
+        '文件格式',
+        '命中段落摘要',
+      ];
+
+      const csvRows = exportRecords.map((r) => [
+        `"${(r.archiveRefCode || '').replace(/"/g, '""')}"`,
+        `"${(r.fondsName || '').replace(/"/g, '""')}"`,
+        `"${(r.title || '').replace(/"/g, '""')}"`,
+        `"${(r.archiveType || '').replace(/"/g, '""')}"`,
+        `"${(r.author || '').replace(/"/g, '""')}"`,
+        `"${r.year}"`,
+        `"${(r.writtenDate || '').replace(/"/g, '""')}"`,
+        `"${(r.archivedDate || '').replace(/"/g, '""')}"`,
+        `"${(r.retentionPeriod || '').replace(/"/g, '""')}"`,
+        `"${(r.securityLevel || '').replace(/"/g, '""')}"`,
+        `"第${r.hitPage}页"`,
+        `"${r.totalHits}次"`,
+        `"${(r.fileFormat || '').replace(/"/g, '""')}"`,
+        `"${(r.hitSnippet || '').replace(/"/g, '""')}"`,
+      ]);
+
+      // Add UTF-8 BOM (\uFEFF) so Excel opens Chinese text correctly
+      const csvString = '\uFEFF' + [headers.join(','), ...csvRows.map((row) => row.join(','))].join('\r\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      onShowMessage(`已成功生成并导出电子表格 [${fileName}]（共 ${exportRecords.length} 条检索记录）`);
+    } else {
+      const fileName = `数字档案全文检索结果_${timestamp}.json`;
+      const jsonString = JSON.stringify(exportRecords, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      onShowMessage(`已成功导出 JSON 元数据文件 [${fileName}]`);
+    }
+  };
+
   const getFormatIcon = (format: string) => {
     if (format === '.doc' || format === '.docx') {
       return <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />;
@@ -670,11 +752,12 @@ export const FullTextCatalogView: React.FC<FullTextCatalogViewProps> = ({
                 <span>加入收藏</span>
               </button>
               <button
-                onClick={() => onShowMessage(`已导出选中的 ${selectedIds.length || sortedData.length} 份检索结果`)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors flex items-center gap-1"
+                onClick={() => handleRealExport('csv')}
+                className="px-3.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                title="点击生成并直接下载真实 CSV/Excel 电子表格文件"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>导出</span>
+                <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>导出表格 ({selectedIds.length > 0 ? `选中 ${selectedIds.length} 项` : `全部 ${sortedData.length} 项`})</span>
               </button>
             </div>
 

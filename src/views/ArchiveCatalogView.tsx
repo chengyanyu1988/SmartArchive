@@ -188,6 +188,65 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
     });
   };
 
+  // Real browser file export (CSV / Excel UTF-8 with BOM)
+  const handleRealExport = (exportSelectedOnly: boolean) => {
+    const exportRecords = exportSelectedOnly
+      ? sortedDataset.filter((r) => selectedIds.includes(r.id))
+      : sortedDataset;
+
+    if (exportRecords.length === 0) {
+      onShowMessage('请先在列表中勾选需要导出的档案目录');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const fileName = `数字档案目录检索结果_${timestamp}.csv`;
+
+    const headers = [
+      '全宗号',
+      '档号',
+      '文件题名',
+      '文号',
+      '责任者',
+      '年度',
+      '成文日期',
+      '归档日期',
+      '保管期限',
+      '密级',
+      '档案门类',
+      '归档状态',
+    ];
+
+    const csvRows = exportRecords.map((r) => [
+      `"${r.archiveRefCode ? r.archiveRefCode.split('-')[0] : '0110'}"`,
+      `"${(r.archiveRefCode || '').replace(/"/g, '""')}"`,
+      `"${(r.title || '').replace(/"/g, '""')}"`,
+      `"${(r.docNo || '').replace(/"/g, '""')}"`,
+      `"${(r.author || '').replace(/"/g, '""')}"`,
+      `"${r.year}"`,
+      `"${(r.creationDate || '').replace(/"/g, '""')}"`,
+      `"${(r.creationDate || '').replace(/"/g, '""')}"`,
+      `"${(r.retentionPeriod || '').replace(/"/g, '""')}"`,
+      `"${(r.securityLevel || '').replace(/"/g, '""')}"`,
+      `"${(r.category || '').replace(/"/g, '""')}"`,
+      `"已归档"`,
+    ]);
+
+    const csvString = '\uFEFF' + [headers.join(','), ...csvRows.map((row) => row.join(','))].join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    onShowMessage(`已成功导出真实 CSV/Excel 表格文件 [${fileName}]（共包含 ${exportRecords.length} 条目录记录）`);
+  };
+
   // Highlight search keywords in title
   const highlightKeywords = (text: string) => {
     const keywordsArr = searchKeywords
@@ -506,23 +565,17 @@ export const ArchiveCatalogView: React.FC<ArchiveCatalogViewProps> = ({
             </button>
 
             <button
-              onClick={() => {
-                if (selectedIds.length === 0) {
-                  onShowMessage('请先勾选需要导出的条目');
-                  return;
-                }
-                onShowMessage(`已成功导出选中的 ${selectedIds.length} 条条目目录 (Excel)`);
-              }}
-              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition-colors"
+              onClick={() => handleRealExport(true)}
+              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition-colors cursor-pointer"
             >
-              导出选中
+              导出选中 ({selectedIds.length})
             </button>
 
             <button
-              onClick={() => onShowMessage(`已成功导出全部 ${sortedDataset.length} 条检索结果目录`)}
-              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition-colors"
+              onClick={() => handleRealExport(false)}
+              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition-colors cursor-pointer"
             >
-              导出全部
+              导出全部 ({sortedDataset.length})
             </button>
           </div>
 
