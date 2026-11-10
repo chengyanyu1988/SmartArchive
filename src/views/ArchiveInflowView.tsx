@@ -862,7 +862,7 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
     onShowMessage(`成功立卷组卷案卷 [${newVol.title}]`);
   };
 
-  // Open Edit Modal
+  // Open Edit Modal with selected record or explicitly passed item
   const handleOpenEdit = (specificItem?: any) => {
     let target = specificItem;
     if (!target) {
@@ -871,31 +871,33 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
           onShowMessage('请先在列表中勾选要编辑的文件');
           return;
         }
-        target = fileList.find((f) => selectedFileIds.includes(f.id));
+        const lastSelectedId = selectedFileIds[selectedFileIds.length - 1];
+        target = fileList.find((f) => f.id === lastSelectedId) || fileList.find((f) => selectedFileIds.includes(f.id));
       } else {
         if (selectedVolumeIds.length === 0) {
           onShowMessage('请先在列表中勾选要编辑的案卷');
           return;
         }
-        target = volumeList.find((v) => selectedVolumeIds.includes(v.id));
+        const lastSelectedId = selectedVolumeIds[selectedVolumeIds.length - 1];
+        target = volumeList.find((v) => v.id === lastSelectedId) || volumeList.find((v) => selectedVolumeIds.includes(v.id));
       }
     }
 
     if (target) {
       setEditingItemId(target.id);
       setFormFondsNo(target.fondsNo || '0110');
-      setFormYear(target.year ? target.year.toString() : '2026');
-      setFormCategory(target.category || target.className || '行政管理');
+      setFormYear(target.year ? String(target.year) : '2026');
+      setFormCategory(target.category || target.className || target.folderName || '行政管理');
       setFormRefCode(target.refCode || target.archiveNo || '');
       setFormTitle(target.title || '');
       setFormDocNo('docNo' in target ? (target.docNo || '') : (target.volumeNo || ''));
-      setFormAuthor(target.author || '');
-      setFormWrittenDate(target.writtenDate || '2026-11-05');
+      setFormAuthor(target.author || target.orgUnit || '');
+      setFormWrittenDate(target.writtenDate || target.prepDate || '2026-11-05');
       setFormRetention(target.retention || '30年');
       setFormSecurity(target.securityLevel || '公开');
-      setFormPageCount(target.totalPages ? target.totalPages.toString() : (target.pageCount ? target.pageCount.toString() : '1'));
-      setFormFileCount(target.fileCount ? target.fileCount.toString() : '1');
-      setFormUnit(target.unit || '档案管理中心');
+      setFormPageCount(target.pageCount ? String(target.pageCount) : (target.totalPages ? String(target.totalPages) : '1'));
+      setFormFileCount(target.fileCount ? String(target.fileCount) : '1');
+      setFormUnit(target.unit || target.orgUnit || '档案管理中心');
       setFormArchivedDate(target.archivedDate || '2026-11-05');
       setFormRemark(target.remark || '');
       setModalType('edit');
@@ -2161,6 +2163,17 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
               </button>
             </div>
 
+            {/* Selected item status banner */}
+            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
+              <div className="flex items-center gap-2 font-mono">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                <span>已同步选中数据 (条目ID: <strong>{editingItemId}</strong>)</span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded bg-blue-600 text-white font-sans text-[11px] font-bold">
+                修改实时生效
+              </span>
+            </div>
+
             {/* Form Fields */}
             <div className="space-y-4 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -2180,33 +2193,26 @@ export const ArchiveInflowView: React.FC<ArchiveInflowViewProps> = ({
                   <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
                     年度:
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={formYear}
                     onChange={(e) => setFormYear(e.target.value)}
-                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono cursor-pointer"
-                  >
-                    <option value="2026">2026年</option>
-                    <option value="2025">2025年</option>
-                    <option value="2024">2024年</option>
-                  </select>
+                    placeholder="如 2026"
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">
                     分类:
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans cursor-pointer"
-                  >
-                    <option value="行政管理">行政管理</option>
-                    <option value="党群工作">党群工作</option>
-                    <option value="生产技术管理">生产技术管理</option>
-                    <option value="经营管理">经营管理</option>
-                    <option value="财务审计">财务审计</option>
-                    <option value="人力资源管理">人力资源管理</option>
-                  </select>
+                    placeholder="如 行政管理 / 生产技术管理"
+                    className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-sans"
+                  />
                 </div>
               </div>
 
